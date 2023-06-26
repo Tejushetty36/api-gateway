@@ -1,0 +1,53 @@
+server:
+  port: 8090
+
+
+spring:
+  application:
+    name: api-gateway
+  config:
+    import: configserver:http://localhost:8092/
+  cloud:
+    gateway:
+      routes:
+        - id: employee-service
+          uri: lb://EMPLOYEE-SERVICE
+          predicates:
+            - Path=/employee/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: employee-service
+                fallbackuri: forward:/employeeFallBack
+        - id: department-service
+          uri: lb://DEPARTMENT-SERVICE
+          predicates:
+            - Path=/department/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: department-service
+                fallbackuri: forward:/departmentFallBack
+
+hystrix:
+  command:
+    fallbackcmd:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 5000
+
+management:
+  endpoint:
+    health:
+      enabled: true
+      show-details: always
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: hystrix.stream
+    jmx:
+      exposure:
+        include: "*"
+
